@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OLT Occupancy Dashboard — October Week 1</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    th { position: sticky; top: 0; z-index: 1; }
+  </style>
+</head>
+<body class="min-h-full bg-slate-950 text-slate-100">
+  <main class="mx-auto max-w-[1600px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[.2em] text-emerald-400">PD1 ISP Station · Source: OCC OKTOBER W1r.csv</p>
+        <h1 class="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">OLT Occupancy Dashboard</h1>
+        <p id="load-status" class="mt-1 text-sm text-slate-400">Loading repository CSV…</p>
+      </div>
+      <a href="./OCC%20OKTOBER%20W1r.csv" download class="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium hover:border-emerald-500">Download source CSV</a>
+    </header>
+
+    <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <article class="rounded-xl border border-slate-800 bg-slate-900 p-4"><p class="text-xs uppercase text-slate-400">OLT records</p><p id="kpi-nodes" class="mt-2 text-2xl font-bold">—</p></article>
+      <article class="rounded-xl border border-slate-800 bg-slate-900 p-4"><p class="text-xs uppercase text-slate-400">Total ports</p><p id="kpi-total" class="mt-2 text-2xl font-bold">—</p></article>
+      <article class="rounded-xl border border-slate-800 bg-slate-900 p-4"><p class="text-xs uppercase text-slate-400">Active ports</p><p id="kpi-active" class="mt-2 text-2xl font-bold text-emerald-400">—</p></article>
+      <article class="rounded-xl border border-slate-800 bg-slate-900 p-4"><p class="text-xs uppercase text-slate-400">Weighted occupancy</p><p id="kpi-occ" class="mt-2 text-2xl font-bold text-amber-400">—</p></article>
+    </section>
+
+    <section class="rounded-xl border border-slate-800 bg-slate-900 p-4">
+      <div class="flex flex-col gap-3 sm:flex-row">
+        <input id="search" type="search" placeholder="Search hostname, STO, region, vendor…" class="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm outline-none focus:border-emerald-500">
+        <select id="region" class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"><option value="">All regions</option></select>
+        <select id="vendor" class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"><option value="">All vendors</option></select>
+        <button id="reset" class="rounded-lg border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800">Reset filters</button>
+      </div>
+      <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+        <span id="result-count">—</span>
+        <span>Blank ACTIVE_PORT values are treated as 0; source values are shown in the table.</span>
+      </div>
+    </section>
+
+    <section class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
+      <div class="overflow-auto" style="max-height:70vh">
+        <table class="min-w-full divide-y divide-slate-800 text-left text-xs">
+          <thead id="table-head" class="bg-slate-950 text-[10px] uppercase tracking-wider text-slate-400"></thead>
+          <tbody id="table-body" class="divide-y divide-slate-800/80"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+<script>
+(() => {
+  const csvUrl = './OCC%20OKTOBER%20W1r.csv';
+  const $ = id => document.getElementById(id);
+  let headers = [];
+  let rows = [];
+  let regionIndex = -1, vendorIndex = -1, activeIndex = -1, downIndex = -1, totalIndex = -1, occIndex = -1;
+  const normalize = value => String(value ?? '').trim().toLowerCase().replace(/\s+/g, '_');
+  const number = value => {
+    const parsed = Number(String(value ?? '').replace(/[^\d.-]/g, ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+  function parseCsv(text) {
+    const result = [];
+    let row = [], cell = '', quoted = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '"') {
+        if (quoted && text[i + 1] === '"') { cell += '"'; i++; }
+        else quoted = !quoted;
+      } else if (ch === ',' && !quoted) { row.push(cell); cell = ''; }
+      else if ((ch === '\n' || ch === '\r') && !quoted) {
+        if (ch === '\r' && text[i + 1] === '\n') i++;
+        row.push(cell); cell = '';
+        if (row.some(value => value.trim() !== '')) result.push(row);
+        row = [];
+      } else cell += ch;
+    }
+    row.push(cell);
+    if (row.some(value => value.trim() !== '')) result.push(row);
+    return result;
+  }
+  function findColumn(names) { return headers.findIndex(h => names.includes(normalize(h))); }
+  function populateSelect(id, values) {
+    const select = $(id);
+    [...new Set(values.filter(Boolean))].sort().forEach(value => {
+      const option = document.createElement('option'); option.value = value; option.textContent = value; select.appendChild(option);
+    });
+  }
+  function render() {
+    const query = $('search').value.trim().toLowerCase();
+    const regionFilter = $('region').value, vendorFilter = $('vendor').value;
+    const filtered = rows.filter(row => {
+      const searchable = [row[regionIndex], row[vendorIndex], ...row].join(' ').toLowerCase();
+      return (!query || searchable.includes(query)) && (!regionFilter || row[regionIndex] === regionFilter) && (!vendorFilter || row[vendorIndex] === vendorFilter);
+    });
+    $('result-count').textContent = `Showing ${filtered.length.toLocaleString()} of ${rows.length.toLocaleString()} records`;
+    const head = $('table-head'); head.replaceChildren();
+    const headRow = document.createElement('tr');
+    headers.forEach((header, index) => {
+      const th = document.createElement('th');
+      th.className = 'whitespace-nowrap px-4 py-3';
+      th.textContent = header.trim() || `EXTRA_${index + 1}`;
+      headRow.appendChild(th);
+    });
+    head.appendChild(headRow);
+    const body = $('table-body'); body.replaceChildren();
+    const fragment = document.createDocumentFragment();
+    filtered.forEach(row => {
+      const tr = document.createElement('tr'); tr.className = 'hover:bg-slate-800/60';
+      headers.forEach((_, index) => {
+        const td = document.createElement('td'); td.className = 'whitespace-nowrap px-4 py-2.5 text-slate-300';
+        td.textContent = row[index] ?? '';
+        if (index === occIndex) {
+          const occ = number(row[index]);
+          td.className += occ >= 86 ? ' font-semibold text-rose-400' : occ >= 70 ? ' font-semibold text-amber-300' : ' text-emerald-300';
+        }
+        tr.appendChild(td);
+      });
+      fragment.appendChild(tr);
+    });
+    body.appendChild(fragment);
+  }
+  async function load() {
+    try {
+      const response = await fetch(csvUrl, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`CSV request failed (${response.status})`);
+      const parsed = parseCsv(await response.text());
+      if (parsed.length < 2) throw new Error('CSV contains no data rows');
+      headers = parsed[0];
+      rows = parsed.slice(1).filter(row => row.some(value => value.trim() !== ''));
+      regionIndex = findColumn(['region']); vendorIndex = findColumn(['vendor']);
+      activeIndex = findColumn(['active_port']); downIndex = findColumn(['down_port']);
+      totalIndex = findColumn(['total_port']); occIndex = findColumn(['occ']);
+      if ([regionIndex, vendorIndex, activeIndex, downIndex, totalIndex].some(index => index < 0)) throw new Error('Expected REGION, VENDOR, ACTIVE_PORT, DOWN_PORT, and TOTAL_PORT columns were not found');
+      const total = rows.reduce((sum, row) => sum + number(row[totalIndex]), 0);
+      const active = rows.reduce((sum, row) => sum + number(row[activeIndex]), 0);
+      $('kpi-nodes').textContent = rows.length.toLocaleString();
+      $('kpi-total').textContent = total.toLocaleString();
+      $('kpi-active').textContent = active.toLocaleString();
+      $('kpi-occ').textContent = `${total ? Math.round(active / total * 100) : 0}%`;
+      populateSelect('region', rows.map(row => row[regionIndex]?.trim()));
+      populateSelect('vendor', rows.map(row => row[vendorIndex]?.trim()));
+      $('load-status').textContent = `Loaded ${rows.length.toLocaleString()} CSV records · values synced from repository file`;
+      render();
+    } catch (error) {
+      $('load-status').textContent = `Could not load CSV: ${error.message}. Open this page through GitHub Pages or a local web server.`;
+      $('table-body').innerHTML = `<tr><td class="p-8 text-rose-300">${error.message}</td></tr>`;
+    }
+  }
+  ['search', 'region', 'vendor'].forEach(id => $(id).addEventListener(id === 'search' ? 'input' : 'change', render));
+  $('reset').addEventListener('click', () => { $('search').value = ''; $('region').value = ''; $('vendor').value = ''; render(); });
+  load();
+})();
+</script>
+</body>
+</html>
