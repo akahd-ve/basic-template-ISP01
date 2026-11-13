@@ -6,196 +6,182 @@
   <meta name="theme-color" content="#020617">
   <title>Dashboard Okupansi OLT — Oktober Minggu 1</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
     th { position: sticky; top: 0; z-index: 1; }
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 5px; }
   </style>
 </head>
 <body class="min-h-full bg-slate-950 text-slate-100">
-  <main class="mx-auto max-w-[1600px] space-y-6 p-4 sm:p-6 lg:p-8">
-    <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <p class="text-xs font-semibold uppercase tracking-[.2em] text-emerald-400">PD1 ISP Station · Sumber: OCC OKTOBER W1r.csv</p>
-        <h1 class="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Dashboard Okupansi OLT</h1>
-        <p id="load-status" role="status" class="mt-1 text-sm text-slate-400">Memuat data CSV dari repository…</p>
+<main class="mx-auto max-w-[1600px] space-y-6 p-4 sm:p-6 lg:p-8">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-[.2em] text-emerald-400">PD1 ISP Station · <span data-i18n="source">Sumber: OCC OKTOBER W1r.csv</span></p>
+      <h1 class="mt-2 text-2xl font-bold tracking-tight sm:text-3xl" data-i18n="title">Dashboard Okupansi OLT</h1>
+      <p id="load-status" role="status" class="mt-1 text-sm text-slate-400">Memuat data CSV dari repository…</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="inline-flex rounded-lg border border-slate-700 bg-slate-900 p-1" role="group" aria-label="Pilih bahasa / Select language">
+        <button id="lang-id" type="button" class="rounded-md px-3 py-2 text-sm" aria-pressed="true" title="Bahasa Indonesia">🇮🇩</button>
+        <button id="lang-en" type="button" class="rounded-md px-3 py-2 text-sm" aria-pressed="false" title="English">🇬🇧</button>
       </div>
-      <a href="./OCC%20OKTOBER%20W1r.csv" download class="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium hover:border-emerald-500">Unduh CSV sumber</a>
-    </header>
+      <a href="./OCC%20OKTOBER%20W1r.csv" download class="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium hover:border-emerald-500"><i class="fa-solid fa-download mr-2 text-emerald-400"></i><span data-i18n="download">Unduh CSV</span></a>
+    </div>
+  </header>
 
-    <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <article class="rounded-xl border border-slate-800 bg-slate-900 p-4"><p class="text-xs uppercase text-slate-400">Jumlah node OLT</p><p id="kpi-nodes" class="mt-2 text-2xl font-bold">—</p><p id="node-validation" class="mt-1 text-xs text-slate-500">Target: 1.687 node</p></article>
-      <article class="rounded-xl border border-slate-800 bg-slate-900 p-4"><p class="text-xs uppercase text-slate-400">Total port</p><p id="kpi-total" class="mt-2 text-2xl font-bold">—</p></article>
-      <article class="rounded-xl border border-slate-800 bg-slate-900 p-4"><p class="text-xs uppercase text-slate-400">Port aktif</p><p id="kpi-active" class="mt-2 text-2xl font-bold text-emerald-400">—</p></article>
-      <article class="rounded-xl border border-slate-800 bg-slate-900 p-4"><p class="text-xs uppercase text-slate-400">Okupansi tertimbang</p><p id="kpi-occ" class="mt-2 text-2xl font-bold text-amber-400">—</p></article>
-    </section>
+  <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <article class="rounded-xl border border-slate-800 bg-slate-900 p-4"><p class="text-xs uppercase text-slate-400" data-i18n="nodes">Jumlah node OLT</p><p id="kpi-nodes" class="mt-2 text-2xl font-bold">—</p><p id="node-validation" class="mt-1 text-xs text-slate-500">Target: 1.687 node</p></article>
+    <article class="rounded-xl border border-slate-800 bg-slate-900 p-4"><p class="text-xs uppercase text-slate-400" data-i18n="totalPorts">Total port</p><p id="kpi-total" class="mt-2 text-2xl font-bold">—</p></article>
+    <article class="rounded-xl border border-slate-800 bg-slate-900 p-4"><p class="text-xs uppercase text-slate-400" data-i18n="activePorts">Port aktif</p><p id="kpi-active" class="mt-2 text-2xl font-bold text-emerald-400">—</p></article>
+    <article class="rounded-xl border border-slate-800 bg-slate-900 p-4"><p class="text-xs uppercase text-slate-400" data-i18n="downPorts">Port down</p><p id="kpi-down" class="mt-2 text-2xl font-bold text-sky-300">—</p></article>
+    <article class="rounded-xl border border-slate-800 bg-slate-900 p-4"><p class="text-xs uppercase text-slate-400" data-i18n="weightedOcc">Okupansi tertimbang</p><p id="kpi-occ" class="mt-2 text-2xl font-bold text-amber-400">—</p><p class="mt-1 text-xs text-slate-500" data-i18n="weightedNote">Total aktif ÷ total port</p></article>
+    <article class="rounded-xl border border-slate-800 bg-slate-900 p-4"><p class="text-xs uppercase text-slate-400" data-i18n="critical">Node kritis (&gt;85%)</p><p id="kpi-critical" class="mt-2 text-2xl font-bold text-rose-400">—</p></article>
+  </section>
 
-    <section class="rounded-xl border border-slate-800 bg-slate-900 p-4">
-      <div class="flex flex-col gap-3 sm:flex-row">
-        <input id="search" type="search" placeholder="Cari hostname, STO, region, vendor…" aria-label="Cari data OLT" class="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm outline-none focus:border-emerald-500">
-        <select id="region" aria-label="Filter region" class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"><option value="">Semua region</option></select>
-        <select id="vendor" aria-label="Filter vendor" class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"><option value="">Semua vendor</option></select>
-        <button id="reset" class="rounded-lg border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800">Reset filter</button>
-      </div>
-      <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
-        <span id="result-count">—</span>
-        <span>Nilai ACTIVE_PORT kosong dihitung 0 untuk KPI; tabel mempertahankan nilai sumber CSV.</span>
-      </div>
-    </section>
+  <section class="grid gap-4 lg:grid-cols-3">
+    <article class="rounded-xl border border-slate-800 bg-slate-900 p-4">
+      <h2 class="mb-1 font-semibold" data-i18n="regionChart">Ringkasan per region</h2><p class="mb-3 text-xs text-slate-400" data-i18n="regionChartNote">Port aktif dan down dari data CSV</p>
+      <div class="relative h-64"><canvas id="region-chart"></canvas></div><div id="region-summary" class="mt-3 grid grid-cols-3 gap-2 text-center text-xs"></div>
+    </article>
+    <article class="rounded-xl border border-slate-800 bg-slate-900 p-4 lg:col-span-2">
+      <h2 class="mb-1 font-semibold" data-i18n="stoChart">10 STO dengan port terbanyak</h2><p class="mb-3 text-xs text-slate-400" data-i18n="stoChartNote">Akumulasi port aktif berdasarkan STO</p>
+      <div class="relative h-64"><canvas id="sto-chart"></canvas></div>
+    </article>
+  </section>
 
-    <section class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
-      <div class="overflow-auto" style="max-height:70vh">
-        <table class="min-w-full divide-y divide-slate-800 text-left text-xs">
-          <thead id="table-head" class="bg-slate-950 text-[10px] uppercase tracking-wider text-slate-400"></thead>
-          <tbody id="table-body" class="divide-y divide-slate-800/80"></tbody>
-        </table>
-      </div>
-      <footer class="flex items-center justify-between gap-3 border-t border-slate-800 bg-slate-950 px-4 py-3 text-xs text-slate-400">
-        <span id="page-info">—</span>
-        <div class="flex items-center gap-2">
-          <button id="previous" class="rounded border border-slate-700 px-3 py-1.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">Sebelumnya</button>
-          <span id="page-indicator" class="min-w-16 text-center">—</span>
-          <button id="next" class="rounded border border-slate-700 px-3 py-1.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">Berikutnya</button>
-        </div>
-      </footer>
-    </section>
-  </main>
+  <section class="rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <input id="search" type="search" data-i18n-placeholder="searchPlaceholder" placeholder="Cari hostname, STO, region, vendor…" aria-label="Cari data OLT" class="min-w-0 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm outline-none focus:border-emerald-500 lg:col-span-2">
+      <select id="region" aria-label="Filter region" class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"><option value="">Semua region</option></select>
+      <select id="sto" aria-label="Filter STO" class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"><option value="">Semua STO</option></select>
+      <select id="vendor" aria-label="Filter vendor" class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"><option value="">Semua vendor</option></select>
+      <select id="occupancy-filter" aria-label="Filter okupansi" class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"><option value="" data-i18n="allOccupancy">Semua okupansi</option><option value="critical" data-i18n="criticalFilter">Kritis (&gt;85%)</option><option value="warning" data-i18n="warningFilter">Peringatan (70–85%)</option><option value="normal" data-i18n="normalFilter">Normal (&lt;70%)</option></select>
+    </div>
+    <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+      <span id="result-count">—</span><span data-i18n="rawNote">Tabel menampilkan nilai sumber CSV; kolom aktif kosong dihitung 0 untuk KPI.</span>
+      <button id="reset" class="rounded-lg border border-slate-700 px-3 py-1.5 hover:bg-slate-800"><i class="fa-solid fa-filter-circle-xmark mr-1"></i><span data-i18n="reset">Reset filter</span></button>
+    </div>
+  </section>
+
+  <section class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
+    <div class="flex flex-col gap-1 border-b border-slate-800 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <h2 class="font-semibold" data-i18n="registry">Interactive OLT Node Registry & Port Occupancy</h2><span class="text-xs text-emerald-400" data-i18n="tableSource">Sumber data tabel: OCC OKTOBER W1r.csv</span>
+    </div>
+    <div class="overflow-auto" style="max-height:70vh"><table class="min-w-full divide-y divide-slate-800 text-left text-xs"><thead id="table-head" class="bg-slate-950 text-[10px] uppercase tracking-wider text-slate-400"></thead><tbody id="table-body" class="divide-y divide-slate-800/80"></tbody></table></div>
+    <footer class="flex flex-col items-center justify-between gap-3 border-t border-slate-800 bg-slate-950 px-4 py-3 text-xs text-slate-400 sm:flex-row">
+      <span id="page-info">—</span><div class="flex items-center gap-2"><button id="previous" class="rounded border border-slate-700 px-3 py-1.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40" data-i18n="previous">Sebelumnya</button><span id="page-indicator" class="min-w-16 text-center">—</span><button id="next" class="rounded border border-slate-700 px-3 py-1.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40" data-i18n="next">Berikutnya</button></div>
+    </footer>
+  </section>
+</main>
 <script>
 (() => {
-  const EXPECTED_NODES = 1687;
-  const PAGE_SIZE = 50;
-  const csvUrl = './OCC%20OKTOBER%20W1r.csv';
+  const EXPECTED_NODES = 1687, PAGE_SIZE = 50, csvUrl = './OCC%20OKTOBER%20W1r.csv';
   const $ = id => document.getElementById(id);
-  let headers = [], rows = [], page = 1;
-  let regionIndex = -1, vendorIndex = -1, activeIndex = -1, totalIndex = -1, occupancyIndex = -1;
-  const normalize = value => String(value ?? '').replace(/^\uFEFF/, '').trim().toLowerCase().replace(/\s+/g, '_');
-  const number = value => {
-    const cleaned = String(value ?? '').trim().replace(/%/g, '').replace(/,/g, '');
-    if (!cleaned) return 0;
-    const parsed = Number(cleaned);
-    return Number.isFinite(parsed) ? parsed : 0;
+  let headers = [], rows = [], page = 1, language = 'id', idx = {}, regionChart = null, stoChart = null;
+  const translations = {
+    id: {source:'Sumber: OCC OKTOBER W1r.csv',title:'Dashboard Okupansi OLT',download:'Unduh CSV',nodes:'Jumlah node OLT',totalPorts:'Total port',activePorts:'Port aktif',downPorts:'Port down',weightedOcc:'Okupansi tertimbang',weightedNote:'Total aktif ÷ total port',critical:'Node kritis (>85%)',regionChart:'Ringkasan per region',regionChartNote:'Port aktif dan down dari data CSV',stoChart:'10 STO dengan port terbanyak',stoChartNote:'Akumulasi port aktif berdasarkan STO',searchPlaceholder:'Cari hostname, STO, region, vendor…',allOccupancy:'Semua okupansi',criticalFilter:'Kritis (>85%)',warningFilter:'Peringatan (70–85%)',normalFilter:'Normal (<70%)',rawNote:'Tabel menampilkan nilai sumber CSV; kolom aktif kosong dihitung 0 untuk KPI.',reset:'Reset filter',registry:'Interactive OLT Node Registry & Port Occupancy',tableSource:'Sumber data tabel: OCC OKTOBER W1r.csv',previous:'Sebelumnya',next:'Berikutnya',allRegions:'Semua region',allStos:'Semua STO',allVendors:'Semua vendor',loading:'Memuat data CSV dari repository…',page:'Halaman',rows:'Baris',of:'dari',noData:'Tidak ada data yang cocok dengan filter.',expected:'✓ Sesuai target 1.687 node',mismatch:'⚠ Terbaca {count} node; target 1.687',loaded:'Data berhasil dimuat langsung dari CSV repository · {count} record',loadError:'Gagal memuat CSV: {error}',noChart:'Grafik tidak tersedia (Chart.js gagal dimuat).',active:'Aktif',down:'Down',activePortsLabel:'Port aktif',downPortsLabel:'Port down'},
+    en: {source:'Source: OCC OKTOBER W1r.csv',title:'OLT Occupancy Dashboard',download:'Download CSV',nodes:'OLT nodes',totalPorts:'Total ports',activePorts:'Active ports',downPorts:'Down ports',weightedOcc:'Weighted occupancy',weightedNote:'Total active ÷ total ports',critical:'Critical nodes (>85%)',regionChart:'Regional summary',regionChartNote:'Active and down ports from CSV',stoChart:'Top 10 STOs by port volume',stoChartNote:'Port totals grouped by STO',searchPlaceholder:'Search hostname, STO, region, vendor…',allOccupancy:'All occupancy',criticalFilter:'Critical (>85%)',warningFilter:'Warning (70–85%)',normalFilter:'Normal (<70%)',rawNote:'Table shows source CSV values; blank active values count as 0 in KPIs.',reset:'Reset filters',registry:'Interactive OLT Node Registry & Port Occupancy',tableSource:'Table data source: OCC OKTOBER W1r.csv',previous:'Previous',next:'Next',allRegions:'All regions',allStos:'All STOs',allVendors:'All vendors',loading:'Loading CSV from repository…',page:'Page',rows:'Rows',of:'of',noData:'No records match these filters.',expected:'✓ Matches target of 1,687 nodes',mismatch:'⚠ Loaded {count} nodes; target is 1,687',loaded:'CSV loaded directly from repository · {count} records',loadError:'Could not load CSV: {error}',noChart:'Charts unavailable (Chart.js failed to load).',active:'Active',down:'Down',activePortsLabel:'Active ports',downPortsLabel:'Down ports'}
   };
+  const t = key => translations[language][key] || key;
+  const normalize = value => String(value ?? '').replace(/^\uFEFF/, '').trim().toLowerCase().replace(/\s+/g, '_');
+  const integer = value => { const s = String(value ?? '').trim().replace(/,/g, ''); if (!s) return 0; const n = Number(s); return Number.isFinite(n) ? n : 0; };
+  const occupancyValue = value => Math.max(0, Math.min(100, integer(String(value ?? '').replace('%', ''))));
   function parseCsv(text) {
-    const output = [];
-    let row = [], cell = '', quoted = false;
+    const result = []; let row = [], cell = '', quoted = false;
     for (let i = 0; i < text.length; i++) {
       const ch = text[i];
-      if (ch === '"') {
-        if (quoted && text[i + 1] === '"') { cell += '"'; i++; }
-        else quoted = !quoted;
-      } else if (ch === ',' && !quoted) { row.push(cell); cell = ''; }
-      else if ((ch === '\n' || ch === '\r') && !quoted) {
-        if (ch === '\r' && text[i + 1] === '\n') i++;
-        row.push(cell); cell = '';
-        if (row.some(value => value.trim() !== '')) output.push(row);
-        row = [];
-      } else cell += ch;
+      if (ch === '"') { if (quoted && text[i + 1] === '"') { cell += '"'; i++; } else quoted = !quoted; }
+      else if (ch === ',' && !quoted) { row.push(cell); cell = ''; }
+      else if ((ch === '\n' || ch === '\r') && !quoted) { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cell); cell = ''; if (row.some(v => v.trim() !== '')) result.push(row); row = []; }
+      else cell += ch;
     }
-    row.push(cell);
-    if (row.some(value => value.trim() !== '')) output.push(row);
-    return output;
+    row.push(cell); if (row.some(v => v.trim() !== '')) result.push(row); return result;
   }
-  function column(names) { return headers.findIndex(header => names.includes(normalize(header))); }
-  function fillSelect(id, values, label) {
-    const select = $(id);
-    [...new Set(values.map(value => String(value ?? '').trim()).filter(Boolean))].sort().forEach(value => {
-      const option = document.createElement('option');
-      option.value = value; option.textContent = value; select.appendChild(option);
+  function findColumn(aliases) { return headers.findIndex(h => aliases.includes(normalize(h))); }
+  function fillSelect(id, values, placeholder) {
+    const select = $(id), previous = select.value; select.replaceChildren();
+    const first = document.createElement('option'); first.value = ''; first.textContent = placeholder; select.appendChild(first);
+    [...new Set(values.map(v => String(v ?? '').trim()).filter(Boolean))].sort().forEach(value => { const option = document.createElement('option'); option.value = value; option.textContent = value; select.appendChild(option); });
+    if ([...select.options].some(option => option.value === previous)) select.value = previous;
+  }
+  function updateCharts() {
+    const regional = new Map(), stos = new Map();
+    rows.forEach(row => {
+      const region = row[idx.region].trim() || '—', sto = row[idx.sto].trim() || '—';
+      const active = integer(row[idx.active]), down = integer(row[idx.down]), total = integer(row[idx.total]);
+      if (!regional.has(region)) regional.set(region, {active:0,down:0,total:0});
+      const r = regional.get(region); r.active += active; r.down += down; r.total += total;
+      if (!stos.has(sto)) stos.set(sto, {active:0,down:0,total:0});
+      const s = stos.get(sto); s.active += active; s.down += down; s.total += total;
     });
-    select.options[0].textContent = label;
+    const regions = [...regional.keys()].sort(), summary = $('region-summary'); summary.replaceChildren();
+    regions.forEach(region => {
+      const values = regional.get(region), card = document.createElement('div'); card.className = 'rounded-lg border border-slate-800 bg-slate-950 p-2';
+      const name = document.createElement('div'); name.className = 'font-bold text-white'; name.textContent = region;
+      const stats = document.createElement('div'); stats.className = 'mt-1 text-slate-400'; stats.textContent = `${t('active')}: ${values.active.toLocaleString('id-ID')} · ${t('down')}: ${values.down.toLocaleString('id-ID')}`;
+      card.append(name, stats); summary.appendChild(card);
+    });
+    if (!window.Chart) { summary.dataset.chart = t('noChart'); return; }
+    if (regionChart) regionChart.destroy();
+    regionChart = new Chart($('region-chart'), {type:'bar',data:{labels:regions,datasets:[{label:t('activePortsLabel'),data:regions.map(r=>regional.get(r).active),backgroundColor:'#10b981',borderRadius:4},{label:t('downPortsLabel'),data:regions.map(r=>regional.get(r).down),backgroundColor:'#475569',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#cbd5e1'}}},scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{beginAtZero:true,ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}}}}});
+    if (stoChart) stoChart.destroy();
+    const top = [...stos.entries()].sort((a,b)=>b[1].total-a[1].total).slice(0,10);
+    stoChart = new Chart($('sto-chart'), {type:'bar',data:{labels:top.map(([name])=>name),datasets:[{label:t('activePortsLabel'),data:top.map(([,v])=>v.active),backgroundColor:'#10b981',borderRadius:4},{label:t('downPortsLabel'),data:top.map(([,v])=>v.down),backgroundColor:'#475569',borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#cbd5e1'}}},scales:{x:{stacked:true,beginAtZero:true,ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{stacked:true,ticks:{color:'#cbd5e1'},grid:{color:'#1e293b'}}}}});
   }
   function filteredRows() {
-    const query = $('search').value.trim().toLocaleLowerCase('id-ID');
-    const region = $('region').value, vendor = $('vendor').value;
+    const query = $('search').value.trim().toLocaleLowerCase(), region = $('region').value, sto = $('sto').value, vendor = $('vendor').value, status = $('occupancy-filter').value;
     return rows.filter(row => {
-      const searchText = row.join(' ').toLocaleLowerCase('id-ID');
-      return (!query || searchText.includes(query)) && (!region || String(row[regionIndex] ?? '').trim() === region) && (!vendor || String(row[vendorIndex] ?? '').trim() === vendor);
+      const occ = occupancyValue(row[idx.occ]);
+      const statusMatch = !status || (status === 'critical' ? occ > 85 : status === 'warning' ? occ >= 70 && occ <= 85 : occ < 70);
+      return (!query || row.join(' ').toLocaleLowerCase().includes(query)) && (!region || row[idx.region].trim() === region) && (!sto || row[idx.sto].trim() === sto) && (!vendor || row[idx.vendor].trim() === vendor) && statusMatch;
     });
   }
-  function render() {
-    const filtered = filteredRows();
-    const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-    page = Math.min(page, pages);
-    const start = (page - 1) * PAGE_SIZE;
-    const visible = filtered.slice(start, start + PAGE_SIZE);
-    $('result-count').textContent = `Menampilkan ${filtered.length.toLocaleString('id-ID')} dari ${rows.length.toLocaleString('id-ID')} node`;
-    $('page-info').textContent = filtered.length ? `Baris ${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} dari ${filtered.length.toLocaleString('id-ID')}` : 'Tidak ada data';
-    $('page-indicator').textContent = `${page} / ${pages}`;
-    $('previous').disabled = page <= 1;
-    $('next').disabled = page >= pages;
-
-    const head = $('table-head'); head.replaceChildren();
-    const headRow = document.createElement('tr');
-    headers.forEach((header, index) => {
-      const th = document.createElement('th'); th.className = 'whitespace-nowrap px-4 py-3';
-      th.textContent = String(header).trim() || `Kolom tambahan ${index + 1}`;
-      headRow.appendChild(th);
-    });
-    head.appendChild(headRow);
-    const body = $('table-body'); body.replaceChildren();
-    const fragment = document.createDocumentFragment();
-    visible.forEach(row => {
-      const tr = document.createElement('tr'); tr.className = 'hover:bg-slate-800/60';
-      headers.forEach((_, index) => {
-        const td = document.createElement('td'); td.className = 'whitespace-nowrap px-4 py-2.5 text-slate-300';
-        td.textContent = row[index] ?? '';
-        if (index === occupancyIndex) {
-          const occupancy = number(row[index]);
-          td.className += occupancy >= 86 ? ' font-semibold text-rose-400' : occupancy >= 70 ? ' font-semibold text-amber-300' : ' text-emerald-300';
-        }
-        tr.appendChild(td);
-      });
-      fragment.appendChild(tr);
-    });
-    body.appendChild(fragment);
+  function renderTable() {
+    const filtered = filteredRows(), pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)); page = Math.min(page, pageCount);
+    const start = (page - 1) * PAGE_SIZE, end = Math.min(start + PAGE_SIZE, filtered.length);
+    $('result-count').textContent = `${filtered.length.toLocaleString('id-ID')} / ${rows.length.toLocaleString('id-ID')} ${language === 'id' ? 'node' : 'nodes'}`;
+    $('page-info').textContent = filtered.length ? `${t('rows')} ${start+1}–${end} ${t('of')} ${filtered.length.toLocaleString('id-ID')}` : t('noData');
+    $('page-indicator').textContent = `${t('page')} ${page} / ${pageCount}`; $('previous').disabled = page <= 1; $('next').disabled = page >= pageCount;
+    const thead = $('table-head'); thead.replaceChildren(); const headerRow = document.createElement('tr');
+    headers.forEach((header, i) => { const th = document.createElement('th'); th.className = 'whitespace-nowrap px-4 py-3'; th.textContent = header.trim() || `EXTRA_${i+1}`; headerRow.appendChild(th); }); thead.appendChild(headerRow);
+    const tbody = $('table-body'); tbody.replaceChildren(); const fragment = document.createDocumentFragment();
+    filtered.slice(start,end).forEach(row => { const tr = document.createElement('tr'); tr.className = 'hover:bg-slate-800/60'; headers.forEach((_,i) => { const td = document.createElement('td'); td.className = 'whitespace-nowrap px-4 py-2.5 text-slate-300'; td.textContent = row[i] ?? ''; if (i === idx.occ) { const occ = occupancyValue(row[i]); td.className += occ > 85 ? ' font-semibold text-rose-400' : occ >= 70 ? ' font-semibold text-amber-300' : ' text-emerald-300'; } tr.appendChild(td); }); fragment.appendChild(tr); }); tbody.appendChild(fragment);
+  }
+  function render() { renderTable(); updateCharts(); }
+  function applyLanguage(lang) {
+    language = lang; document.documentElement.lang = lang;
+    document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.dataset.i18n; if (translations[lang][key]) el.textContent = translations[lang][key]; });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+    $('region').options[0].textContent=t('allRegions'); $('sto').options[0].textContent=t('allStos'); $('vendor').options[0].textContent=t('allVendors');
+    $('load-status').textContent = rows.length ? t('loaded').replace('{count}',rows.length.toLocaleString('id-ID')) : t('loading');
+    ['id','en'].forEach(code => { const button=$(`lang-${code}`); button.setAttribute('aria-pressed',String(code===lang)); button.className=`rounded-md px-3 py-2 text-sm ${code===lang?'bg-emerald-600 text-slate-950':'text-slate-300 hover:bg-slate-800'}`; });
+    if (rows.length) render();
   }
   async function load() {
     try {
-      const response = await fetch(csvUrl, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`Permintaan CSV gagal (HTTP ${response.status})`);
-      const parsed = parseCsv(await response.text());
-      if (parsed.length < 2) throw new Error('CSV tidak memiliki baris data');
-      headers = parsed[0];
-      const required = {
-        region: column(['region']), vendor: column(['vendor']), active: column(['active_port']),
-        total: column(['total_port']), occupancy: column(['occ'])
-      };
-      ({ regionIndex, vendorIndex, activeIndex, totalIndex, occupancyIndex } = {
-        regionIndex: required.region, vendorIndex: required.vendor, activeIndex: required.active,
-        totalIndex: required.total, occupancyIndex: required.occupancy
-      });
-      if (Object.values(required).some(index => index < 0)) throw new Error('Kolom REGION, VENDOR, ACTIVE_PORT, TOTAL_PORT, atau OCC tidak ditemukan');
-      rows = parsed.slice(1).filter(row => row.some(value => value.trim() !== ''));
-      if (rows.some(row => row.length < headers.length)) throw new Error('Ada baris CSV dengan jumlah kolom yang tidak lengkap');
-
-      const totalPorts = rows.reduce((sum, row) => sum + number(row[totalIndex]), 0);
-      const activePorts = rows.reduce((sum, row) => sum + number(row[activeIndex]), 0);
-      $('kpi-nodes').textContent = rows.length.toLocaleString('id-ID');
-      $('kpi-total').textContent = totalPorts.toLocaleString('id-ID');
-      $('kpi-active').textContent = activePorts.toLocaleString('id-ID');
-      $('kpi-occ').textContent = `${totalPorts ? (activePorts / totalPorts * 100).toFixed(1) : '0.0'}%`;
-      const validation = $('node-validation');
-      if (rows.length === EXPECTED_NODES) {
-        validation.textContent = `✓ Sesuai target ${EXPECTED_NODES.toLocaleString('id-ID')} node`;
-        validation.className = 'mt-1 text-xs text-emerald-400';
-      } else {
-        validation.textContent = `⚠ Terbaca ${rows.length.toLocaleString('id-ID')} node; target ${EXPECTED_NODES.toLocaleString('id-ID')}`;
-        validation.className = 'mt-1 text-xs text-amber-300';
-      }
-      fillSelect('region', rows.map(row => row[regionIndex]), 'Semua region');
-      fillSelect('vendor', rows.map(row => row[vendorIndex]), 'Semua vendor');
-      $('load-status').textContent = `Data berhasil dimuat langsung dari CSV repository · ${rows.length.toLocaleString('id-ID')} record`;
-      render();
-    } catch (error) {
-      $('load-status').textContent = `Gagal memuat CSV: ${error.message}`;
-      $('node-validation').textContent = 'Data belum tervalidasi';
-      $('table-body').innerHTML = `<tr><td class="p-8 text-rose-300">${error.message}</td></tr>`;
-    }
+      const response = await fetch(csvUrl,{cache:'no-store'}); if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const parsed = parseCsv(await response.text()); if (parsed.length < 2) throw new Error('CSV tidak memiliki baris data');
+      headers=parsed[0]; idx={region:findColumn(['region']),sto:findColumn(['sto']),hostname:findColumn(['hostname','hosname']),vendor:findColumn(['vendor']),type:findColumn(['type_node']),version:findColumn(['version_node']),active:findColumn(['active_port']),down:findColumn(['down_port']),total:findColumn(['total_port']),occ:findColumn(['occ'])};
+      const missing=Object.entries(idx).filter(([,i])=>i<0).map(([key])=>key); if(missing.length) throw new Error(`Kolom wajib tidak ditemukan: ${missing.join(', ')}`);
+      rows=parsed.slice(1).filter(row=>row.some(value=>value.trim()!==''));
+      const malformed=rows.findIndex(row=>row.length<headers.length); if(malformed>=0) throw new Error(`Baris data ${malformed+2} memiliki kolom yang tidak lengkap`);
+      const total=rows.reduce((sum,row)=>sum+integer(row[idx.total]),0), active=rows.reduce((sum,row)=>sum+integer(row[idx.active]),0), down=rows.reduce((sum,row)=>sum+integer(row[idx.down]),0);
+      $('kpi-nodes').textContent=rows.length.toLocaleString('id-ID'); $('kpi-total').textContent=total.toLocaleString('id-ID'); $('kpi-active').textContent=active.toLocaleString('id-ID'); $('kpi-down').textContent=down.toLocaleString('id-ID'); $('kpi-occ').textContent=`${total?(active/total*100).toFixed(1):'0.0'}%`;
+      $('kpi-critical').textContent=rows.filter(row=>occupancyValue(row[idx.occ])>85).length.toLocaleString('id-ID');
+      const check=$('node-validation'); if(rows.length===EXPECTED_NODES){check.textContent=t('expected');check.className='mt-1 text-xs text-emerald-400';}else{check.textContent=t('mismatch').replace('{count}',rows.length.toLocaleString('id-ID'));check.className='mt-1 text-xs text-amber-300';}
+      fillSelect('region',rows.map(row=>row[idx.region]),t('allRegions')); fillSelect('sto',rows.map(row=>row[idx.sto]),t('allStos')); fillSelect('vendor',rows.map(row=>row[idx.vendor]),t('allVendors'));
+      $('load-status').textContent=t('loaded').replace('{count}',rows.length.toLocaleString('id-ID')); render();
+    } catch(error) { $('load-status').textContent=t('loadError').replace('{error}',error.message); $('node-validation').textContent='Data belum tervalidasi'; $('table-body').innerHTML=`<tr><td class="p-8 text-rose-300">${error.message}</td></tr>`; }
   }
-  ['search', 'region', 'vendor'].forEach(id => $(id).addEventListener(id === 'search' ? 'input' : 'change', () => { page = 1; render(); }));
-  $('reset').addEventListener('click', () => { $('search').value = ''; $('region').value = ''; $('vendor').value = ''; page = 1; render(); });
-  $('previous').addEventListener('click', () => { if (page > 1) { page--; render(); } });
-  $('next').addEventListener('click', () => { if (page < Math.ceil(filteredRows().length / PAGE_SIZE)) { page++; render(); } });
-  load();
+  ['search','region','sto','vendor','occupancy-filter'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',()=>{page=1;renderTable();}));
+  $('reset').addEventListener('click',()=>{$('search').value='';$('region').value='';$('sto').value='';$('vendor').value='';$('occupancy-filter').value='';page=1;renderTable();});
+  $('previous').addEventListener('click',()=>{if(page>1){page--;renderTable();}}); $('next').addEventListener('click',()=>{if(page<Math.ceil(filteredRows().length/PAGE_SIZE)){page++;renderTable();}});
+  $('lang-id').addEventListener('click',()=>applyLanguage('id')); $('lang-en').addEventListener('click',()=>applyLanguage('en'));
+  applyLanguage('id'); load();
 })();
 </script>
 </body>
